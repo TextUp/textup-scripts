@@ -35,7 +35,7 @@ else { paramsHasError = true }
 
 if (paramsHasError) {
 	System.err.println """
-		USAGE: groovy run-script <path-to-script> <0> <1> <2> <3> <4>
+		USAGE: groovy <path-to-script> <0> <1> <2> <3> <4>
 		0 = name of the all markets tag
 		1 = id of the phone to add contacts and tags to
 		2 = path to the input csv file

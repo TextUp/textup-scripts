@@ -126,7 +126,6 @@ class RhodySpreadsheetHelpers {
 		if (lastEntry) { data << lastEntry }
 		// trim whitespace on each entry
 		data*.trim()
-		data
 	}
 	String cleanPhoneNumber(String rawNumber) {
 		String cleaned = rawNumber.replaceAll(/\D/, "")
