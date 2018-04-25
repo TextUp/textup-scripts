@@ -1,10 +1,10 @@
 # TextUp Scripts
 
-This repository contains database migration scripts and data import/export scripts used to move data between different version of TextUp. The current version of TextUp is version 2.
+This repository contains various scripts used by the TextUp team, including database migration scripts and data import/export scripts used to move data between different version of TextUp. The current version of TextUp is version 2.
 
-## License 
+## License
 
-Copyright 2017 TextUp 
+Copyright 2018 TextUp
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
