@@ -7,7 +7,9 @@
 --      input data required. The easiest way to gather this input data is via a
 --      properly-formatted CSV file.
 
-SET @phone_id = 114;
+SET @phone_id = 2;
+-- ensure that our timestamps use utc
+SET time_zone = '+00:00';
 
 USE prodDb;
 DROP PROCEDURE IF EXISTS import_contact_row;
@@ -47,7 +49,8 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
             record_id,
             status,
             is_deleted,
-            when_created)
+            when_created,
+            last_touched)
         VALUES (
             0,
             this_name,
@@ -56,6 +59,7 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
             contact_record_id,
             "ACTIVE",
             0,
+            NOW(),
             NOW());
 
         SELECT LAST_INSERT_ID() INTO contact_id;
