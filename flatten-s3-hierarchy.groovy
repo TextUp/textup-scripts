@@ -27,10 +27,13 @@ String result = "aws s3 ls s3://${bucketName}".execute().text
 def m =  result =~ /(note-\d+)/
 int numToFlatten = m.size()
 // step 3: iterate through all unique prefixes found and rename without prefix
-String command = "aws s3 cp --recursive" + " " + (doActualRun ? "" : "--dryrun")
+// because we have mandatory sse, we need to enable it too for copying: https://serverfault.com/a/874370
+String commandBase = "aws s3 cp --sse AES256 --recursive" + " " + (doActualRun ? "" : "--dryrun")
 println "Number of found folders to flatten is: ${numToFlatten}"
 m.eachWithIndex { obj, index ->
     String matched = obj[0]
+    String toExecute = "${commandBase} s3://${bucketName}/${matched}/ s3://${bucketName}/"
     println "******** Working on ${index + 1} of ${numToFlatten} --> ${matched} ********"
-    println "${command} s3://${bucketName}/${matched}/ s3://${bucketName}/".execute().text
+    println toExecute
+    println toExecute.execute().text
 }
