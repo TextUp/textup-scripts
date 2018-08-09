@@ -110,8 +110,8 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
             -- if tag does not exist
             IF tag_id IS NULL THEN
                 -- create tag's record
-                INSERT INTO record (version, last_record_activity)
-                VALUES (0, NOW());
+                INSERT INTO record (version, last_record_activity, language)
+                VALUES (0, NOW(), "ENGLISH"); -- defaults to English
 
                 SELECT LAST_INSERT_ID() INTO tag_record_id;
 
