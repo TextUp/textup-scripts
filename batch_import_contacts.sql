@@ -8,6 +8,7 @@
 --      properly-formatted CSV file.
 
 SET @phone_id = 2;
+
 -- ensure that our timestamps use utc
 SET time_zone = '+00:00';
 
@@ -28,11 +29,11 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
         DECLARE prev_numbers_string TEXT DEFAULT "";
 
         DECLARE current_tags_string TEXT DEFAULT this_tags;
-        DECLARE current_tag TEXT;
+        DECLARE current_tag_name TEXT;
         DECLARE prev_tags_string TEXT DEFAULT "";
 
         DECLARE tag_record_id BIGINT;
-        DECLARE tag_id BIGINT;
+        DECLARE tag_members_id BIGINT;
 
         -- create contact's record
         INSERT INTO record (version, last_record_activity, language)
@@ -41,10 +42,11 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
         SELECT LAST_INSERT_ID() INTO contact_record_id;
 
         -- create contact
-        INSERT INTO contact (
+        INSERT INTO phone_record (
             version,
+            class,
             name,
-            note,
+            individual_note,
             phone_id,
             record_id,
             status,
@@ -53,6 +55,7 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
             last_touched)
         VALUES (
             0,
+            "org.textup.IndividualPhoneRecord",
             this_name,
             this_note,
             this_phone_id,
@@ -78,13 +81,11 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
                 version,
                 number,
                 owner_id,
-                preference,
-                numbers_idx)
+                preference)
             VALUES (
                 0,
                 current_number,
                 contact_id,
-                current_number_pref,
                 current_number_pref);
 
             INSERT INTO debug_messages SELECT CONCAT_WS(" ", "created number", current_number, "for contact", contact_id, "with number pref", current_number_pref);
@@ -95,52 +96,73 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
         -- for each comma-separated tag...
         WHILE current_tags_string != prev_tags_string DO
 
-            SET current_tag = TRIM(SUBSTRING_INDEX(current_tags_string, ",", 1));
+            SET current_tag_name = TRIM(SUBSTRING_INDEX(current_tags_string, ",", 1));
             SET prev_tags_string = current_tags_string;
             SET current_tags_string = SUBSTRING(current_tags_string, INSTR(current_tags_string, ",") + 1);
 
             -- check if tag exists - if exists store tag id
-            SELECT id
-                FROM contact_tag
-                WHERE phone_id = this_phone_id
-                    AND name = current_tag COLLATE utf8mb4_general_ci
-                LIMIT 1
-                INTO tag_id;
+            SELECT members_id
+            FROM phone_record
+            WHERE class = "org.textup.GroupPhoneRecord"
+                AND phone_id = this_phone_id
+                AND name = current_tag_name
+                AND is_deleted = 0
+                AND status = "ACTIVE"
+            LIMIT 1
+            INTO tag_members_id;
 
             -- if tag does not exist
-            IF tag_id IS NULL THEN
+            IF tag_members_id IS NULL THEN
                 -- create tag's record
                 INSERT INTO record (version, last_record_activity, language)
                 VALUES (0, NOW(), "ENGLISH"); -- defaults to English
 
                 SELECT LAST_INSERT_ID() INTO tag_record_id;
 
+                -- create tag's members object
+                INSERT INTO phone_record_members (version)
+                VALUES (0);
+
+                SELECT LAST_INSERT_ID() INTO tag_members_id;
+
                 -- create tag, storing newly create tag's id
-                INSERT INTO contact_tag (
+                INSERT INTO phone_record (
                     version,
-                    hex_color,
+                    class,
+                    group_hex_color,
                     is_deleted,
                     name,
                     phone_id,
                     record_id,
-                    when_created)
+                    members_id,
+                    when_created,
+                    last_touched,
+                    status)
                 VALUES (
                     0,
+                    "org.textup.GroupPhoneRecord",
                     "#1BA5E0",
                     0,
-                    current_tag,
+                    current_tag_name,
                     this_phone_id,
                     tag_record_id,
-                    NOW());
+                    tag_members_id,
+                    NOW(),
+                    NOW(),
+                    "ACTIVE");
 
-                SELECT LAST_INSERT_ID() INTO tag_id;
-
-                INSERT INTO debug_messages SELECT CONCAT_WS(" ", "created tag with id", tag_id, "and name", current_tag);
+                INSERT INTO debug_messages SELECT CONCAT_WS(" ", "created tag with MEMBERS id", tag_members_id, "and name", current_tag_name);
+            ELSE
+                INSERT INTO debug_messages SELECT CONCAT_WS(" ", "found existing tag with MEMBERS id", tag_members_id, "and name", current_tag_name);
             END IF;
 
             -- add newly-created contact to tag
-            INSERT INTO contact_tag_contact (contact_tag_members_id, contact_id)
-            VALUES (tag_id, contact_id);
+            INSERT INTO phone_record_members_phone_record (
+                phone_record_members_phone_records_id,
+                phone_record_id)
+            VALUES (
+                tag_members_id,
+                contact_id);
         END WHILE;
     END $$
 
@@ -159,8 +181,7 @@ BEGIN
     CREATE TEMPORARY TABLE debug_messages (message TEXT);
 
     -- call stored procedures - one call per contact
-
-    CALL import_contact_row(this_phone_id, "Eric Bai","TextUp programmer","ENGLISH","6261238888,4019328888","TextUp Team,Housemats");
+    CALL import_contact_row(this_phone_id, "Eric Bai","TextUp programmer","ENGLISH","6261238888,4019328888","TextUp Team,Housemates");
 
     IF has_error = 1 THEN
         ROLLBACK;
