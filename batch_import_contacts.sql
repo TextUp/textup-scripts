@@ -36,14 +36,13 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
         DECLARE tag_members_id BIGINT;
 
         -- create contact's record
-        INSERT INTO record (version, last_record_activity, language)
-        VALUES (0, NOW(), this_language);
+        INSERT INTO record (last_record_activity, language)
+        VALUES (NOW(), this_language);
 
         SELECT LAST_INSERT_ID() INTO contact_record_id;
 
         -- create contact
         INSERT INTO phone_record (
-            version,
             class,
             name,
             individual_note,
@@ -54,7 +53,6 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
             when_created,
             last_touched)
         VALUES (
-            0,
             "org.textup.IndividualPhoneRecord",
             this_name,
             this_note,
@@ -114,8 +112,8 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
             -- if tag does not exist
             IF tag_members_id IS NULL THEN
                 -- create tag's record
-                INSERT INTO record (version, last_record_activity, language)
-                VALUES (0, NOW(), "ENGLISH"); -- defaults to English
+                INSERT INTO record (last_record_activity, language)
+                VALUES (NOW(), "ENGLISH"); -- defaults to English
 
                 SELECT LAST_INSERT_ID() INTO tag_record_id;
 
@@ -127,7 +125,6 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
 
                 -- create tag, storing newly create tag's id
                 INSERT INTO phone_record (
-                    version,
                     class,
                     group_hex_color,
                     is_deleted,
@@ -139,7 +136,6 @@ CREATE PROCEDURE import_contact_row(IN this_phone_id bigint(20), IN this_name va
                     last_touched,
                     status)
                 VALUES (
-                    0,
                     "org.textup.GroupPhoneRecord",
                     "#1BA5E0",
                     0,
